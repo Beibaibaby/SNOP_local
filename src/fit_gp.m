@@ -1,0 +1,73 @@
+function [gprMdl,gprMdl_feas,f_plus,epsilon_scaled]=fit_gp(x_train,y_train,y_feasibility,epsilon,gprMdl,current_feas,f_plus,epsilon_scaled,is_log) 
+
+%% Fit the GP models on the evaluated parameter sets, for both the full cost and the feasibility constraints.
+%   -Input
+%      x_train: [number of iterations, number of params], trace of the
+%		parameter sets
+%      y_train: [number of iterations], trace of the cost
+%      y_feasibility: [number of iterations], trace of the feasibility
+%       constraints.
+%      epsilon: float, exploration-exploitation trade-off parameter
+%      gprMdl: struct, current GP model for the full cost (if the current
+%       parameter set is infeasible, will skip fitting and use the current
+%       model).
+%      current_feas: {0,1}, if the current parameter set is feasible
+%      f_plus: float, current best cost value
+%      epsilon_scaled: float, exploration-exploitation trade-off parameter
+%      scaled by the observed std.
+%      is_log: {0,1}, if apply log-transform to y.
+
+%   -Output
+%      gprMdl: struct, fitted GP for the full cost function
+%      gprMdl_feas: struct, fitted GP for the feasibility constraints
+%      f_plus: float, current best cost value
+%      epsilon_scaled: float, exploration-exploitation trade-off parameter
+
+
+
+if is_log
+    y_train=log(y_train);
+end
+
+if current_feas
+    try
+        gprMdl = fitrgp(x_train,y_train,...
+                'KernelFunction','ardmatern52',...
+                'BasisFunction', 'constant', ...
+                'Standardize', false,...
+                'ConstantSigma',false,...
+                'FitMethod','exact','PredictMethod','exact');
+    catch 
+        % If no convergence, set a lower bound for sigma in the kernel
+        gprMdl = fitrgp(x_train,y_train,...
+                'KernelFunction','ardmatern52',...
+                'BasisFunction', 'constant', ...
+                'Standardize', false,...
+                'ConstantSigma',false,...
+                'SigmaLowerBound',1e-5,...
+                'FitMethod','exact','PredictMethod','exact');
+    end
+    [mu_train,~]= predict(gprMdl,x_train(find(y_feasibility==1),:));
+    [f_plus,~]=min(mu_train);
+    epsilon_scaled=nanstd(y_train)*epsilon;
+end
+
+try
+    gprMdl_feas = fitrgp(x_train,y_feasibility,...
+            'KernelFunction','ardmatern52',...
+            'BasisFunction', 'constant', ...
+            'Standardize', false,...
+            'ConstantSigma',false,...
+            'FitMethod','exact','PredictMethod','exact');
+catch 
+    % If no convergence, set a lower bound for sigma in the kernel
+    gprMdl_feas = fitrgp(x_train,y_feasibility,...
+            'KernelFunction','ardmatern52',...
+            'BasisFunction', 'constant', ...
+            'Standardize', false,...
+            'ConstantSigma',false,...
+            'SigmaLowerBound',1e-5,...
+            'FitMethod','exact','PredictMethod','exact');
+end
+
+end
