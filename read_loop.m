@@ -17,7 +17,7 @@ obj_configs.Ne1 = 25;          % Example: number of excitatory neurons considere
 obj_configs.dim_method = 'PA'; % Dimensionality reduction method
 
 % Loop through the first 10 entries in the dataset
-for i = 1:min(10, length(d))
+for i = 1:min(20, length(d))
     fprintf('\nProcessing Entry %d - Day: %s\n', i, num2str(d(i).dayNum));
 
     % Access v4counts field
@@ -39,6 +39,11 @@ for i = 1:min(10, length(d))
         continue;  % Skip the current iteration and move to the next entry
     end
 
+    if d(i).dayNum == 37
+        fprintf('Skipping day 35 as per condition.\n');
+        continue;  % Skip the current iteration and move to the next entry
+    end
+
 
    
     fprintf('v4counts data size: %s\n', mat2str(size(v4counts_current)));
@@ -49,9 +54,9 @@ for i = 1:min(10, length(d))
 
     % Load the data for analysis
     re = v4counts_current;
-    Ic1 = sample_e_neurons_count(re, 10, 1);
+    Ic1 = sample_e_neurons_count(re, 50, 1);
     %disp(Ic1)
-    n_neuron = 20;
+    n_neuron = 50;
     n_sampling = 20;
     check_stability = 1;
 
@@ -78,7 +83,7 @@ for i = 1:min(10, length(d))
     default_weights = ones(1,6);
 
     true_statistics = table(n_neuron, rate_mean, rate_var, fano_mean, fano_var, mean_corr_mean, mean_corr_var, fa_percent_mean, fa_percent_var, fa_dim_mean, fa_dim_var, fa_normeval_mean, fa_normeval_var, default_weights, ...
-                            'VariableNames', {'NeuronCount', 'RateMean', 'RateVar', 'FanoMean', 'FanoVar', 'MeanCorrMean', 'MeanCorrVar', 'FaPercentMean', 'FaPercentVar', 'FaDimMean', 'FaDimVar', 'FaNormevalMean', 'FaNormevalVar', 'DefaultWeights'});
+                            'VariableNames', {'n_neuron', 'rate_mean', 'rate_var', 'fano_mean', 'fano_var', 'mean_corr_mean', 'mean_corr_var', 'fa_percent_mean', 'fa_percent_var', 'fa_dim_mean', 'fa_dim_var', 'fa_normeval_mean', 'fa_normeval_var', 'default_weights'});
 
     % Optionally save the statistics table to a file
     output_file_name = sprintf('./data/stats_day%d.mat', d(i).dayNum);

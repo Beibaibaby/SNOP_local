@@ -13,7 +13,7 @@ function [rate0, var0, FanoFactor0, mean_corr0, unstable_flag, sampling_inds, re
 
     % Threshold for low firing rate (in Hz, assuming time is in milliseconds)
     rate_th = 0.5; % low firing rate threshold
-    high_rate_th = 60; % high firing rate threshold
+    high_rate_th = 100; % high firing rate threshold
 
     % Filter neurons based on Ic1 indices if provided
     if ~isempty(Ic1)
@@ -33,8 +33,10 @@ function [rate0, var0, FanoFactor0, mean_corr0, unstable_flag, sampling_inds, re
         return;
     end
 
+    binSize = 0.2; 
     % Stability and firing rate checks
-    mean_rates = mean(re, 2) * 1000 / size(re, 2); % Convert counts to rates assuming millisecond bins
+    mean_rates = sum(re, 2) / (size(re, 2) * binSize);
+    
     if any(mean_rates < rate_th) || any(mean_rates > high_rate_th)
         low_rate_flag = true;
     end
@@ -64,11 +66,14 @@ function [rate0, var0, FanoFactor0, mean_corr0, unstable_flag, sampling_inds, re
     mean_corr0s = zeros(n_sampling, 1);
 
     for i = 1:n_sampling
+        
         sampled_data = re_filtered(sampling_inds, :);
-        rate0s(i) = mean(sampled_data(:)) * 1000 / size(re, 2);
-        var0s(i) = var(sampled_data(:));
-        FanoFactor0s(i) = var0s(i) / rate0s(i);
-        mean_corr0s(i) = mean(mean(corrcoef(sampled_data')));
+        tmp = re(sampling_inds, :);
+        [rate0,var0, FanoFactor0, mean_corr0]=compute_statistics_only(tmp);
+       rate0s(i)=rate0*1000/200; % look at all neurons for rate
+       var0s(i)=var0;
+       FanoFactor0s(i)=FanoFactor0;
+       mean_corr0s(i)=mean_corr0;
     end
 
     % Averaging the statistics

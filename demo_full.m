@@ -42,16 +42,16 @@ addpath('src')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-file_pattr = 'demo_recy_bo_output';
-nthread = 10;
+file_pattr = 'monkey_output_';
+nthread = 30;
 min_costs=[]; %minimal cost for each customization task
 optimal_paras=[]; %optimal parameter set for each customization task
 min_stats_mean = zeros(nthread, 55);  %activity stats of the optimal parameter set (es has 50 entries, leading to a total of 55)
-target_stats_mean = zeros(nthread, 55); %activity stats of the target data
+target_stats_mean = zeros(nthread, 6); %activity stats of the target data
 cost_trace = {}; %trace of the cost over iteration for each customization task
 time_trace = {}; %trace of the time over iteration for each customization task
 
-for jobid=1:nthread
+for jobid=23:23
   y_trains = [];
   x_trains = [];
   stats = [];
@@ -59,8 +59,20 @@ for jobid=1:nthread
   try
     results_name = strcat('./results/', file_pattr, string(jobid), '.mat');
     stats_name=strcat('./results/', file_pattr, string(jobid), '_stats.mat');
+
     load(results_name)
     load(stats_name)
+    fprintf(results_name)
+    fprintf(stats_name)
+
+        load(results_name);
+    file_info = load(results_name, '-mat');
+    disp(file_info);
+
+    load(stats_name);
+    file_info = load(stats_name, '-mat');
+    disp(file_info);
+
 
     y_trains=[y_trains;y_train];
     x_trains=[x_trains;x_train];
@@ -76,11 +88,13 @@ for jobid=1:nthread
     pas = parass{J, :};
     pas = pas(1, :);
     min_stats_mean(jobid, :)=mean(stats{J,[2,4:end]},1);
+    fprintf(strcat('./data/monkey_',string(jobid),'.mat'))
 
-    load(strcat('./data/demo_sbn_simu_',string(jobid),'.mat'))
+    load(strcat('./data/monkey_',string(jobid),'.mat'))
+    fprintf('successfully loaded file %d \n', jobid)
+    disp(true_statistics)
+    
     target_stats_mean(jobid,:) = [true_statistics.rate_mean, true_statistics.fano_mean, true_statistics.mean_corr_mean, true_statistics.fa_percent_mean, true_statistics.fa_dim_mean,true_statistics.fa_normeval_mean];
-
-
     fprintf('successfully loaded file %d \n', jobid)
     fprintf('target stats: fr: %.2f, ff: %.2f, rsc: %.3f, psh: %.1f, dsh: %.1f, es (1st): %.1f \n',...
             target_stats_mean(jobid,1), target_stats_mean(jobid,2), target_stats_mean(jobid,3),...
