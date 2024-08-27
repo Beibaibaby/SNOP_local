@@ -11,7 +11,7 @@ function [fa_percentshared, fa_normevals, fa_dshared] = compute_pop_stats(sampli
 %      fa_normevals: [n_neuron], eigenspectrum
 %      fa_dshared: int, dim of shared variance, can be float after averaging
 
-fprintf('start') 
+fprintf('start\n') 
 n_samples=size(sampling_inds,1);
 fprintf('Number of samples: %d\n', n_samples);
 fa_percentshared=zeros(n_samples,1);
@@ -25,7 +25,6 @@ for k =1:n_samples
     	switch dim_method
 			case 'PA'
 				[n_latent] = PA_dim(tmp);
-                disp(n_latent)
 			case 'CV'
 				[n_latent] = CV_dim(tmp);
 			case 'CV_skip'
@@ -49,6 +48,7 @@ for k =1:n_samples
 			fa_dshared(k)=d_shared;
 		catch
 			if rcond(cov(tmp')) <1e-8
+                fprintf('Sample %d: Singularity in FA\n', k);
 				warning('Singularity in FA')
 				fa_percentshared(k)=1;
 				fa_normevals(k,1:size(tmp,1))=NaN(1,size(tmp,1));
@@ -85,7 +85,7 @@ function [n_latent] = PA_dim(tmp)
 	n_latent=find(cpr_ind(2:end)==0,1);
 	if isempty(n_latent)
 		n_latent = size(tmp,2);
-	end
+    end
 end
 
 function [n_latent] = CV_dim(tmp)
@@ -126,3 +126,4 @@ function [n_latent] = CV_skip(tmp)
 		n_latent=1;
 	end
 end
+

@@ -1,0 +1,96 @@
+clear; clc; close all;
+addpath('src')
+
+load('/Users/dracoxu/Research/SNOP_local/data_dave/1.mat')
+
+spkmat = areaData.LIP.spont(1).X;
+
+fprintf('LIP data size (number of trials) x (number of neurons): %s\n', mat2str(size(spkmat)));
+
+% Calculate overall mean firing rate (spikes per second)
+binWidth = 0.1; % 100 ms bin width
+totalMeanFiringRate = mean(spkmat(:)) / binWidth;
+
+% Calculate overall variance of the firing rate
+totalVarFiringRate = var(spkmat(:)) / binWidth;
+
+% Calculate the total Fano Factor
+totalFanoFactor = totalVarFiringRate / totalMeanFiringRate;
+
+% Calculate correlation coefficients between neurons
+corrMatrix = corr(spkmat, 'Rows', 'pairwise'); % Ensures that NaN values are handled by considering pairs with valid data
+
+% Visualize the correlation matrix using imagesc
+figure;
+imagesc(corrMatrix);
+colorbar;
+title('Correlation Matrix using corr function');
+xlabel('Neurons');
+ylabel('Neurons');
+
+% Filtering out NaN values and considering only the upper triangle (excluding diagonal)
+validCorrValues = corrMatrix(triu(true(size(corrMatrix)), 1));
+validCorrValues = validCorrValues(~isnan(validCorrValues)); % Remove NaN values from the upper triangle
+
+% Compute correlation coefficients
+meanCorrelation = mean(validCorrValues);
+
+fprintf('LIP data size (number of trials) x (number of neurons): [%d %d]\n', size(spkmat));
+fprintf('Total Mean Firing Rate (spikes/s): %f\n', totalMeanFiringRate);
+fprintf('Total Variance of Firing Rate (spikes^2/s): %f\n', totalVarFiringRate);
+fprintf('Total Fano Factor: %f\n', totalFanoFactor);
+fprintf('Mean Correlation between Neurons: %f\n', meanCorrelation);
+
+[rate1, var1, FanoFactor1, mean_corr1] = analyzeNeuralData(spkmat);
+fprintf('Mean Rate: %f, Mean Variance: %f, Mean Fano Factor: %f, Mean Correlation: %f\n', rate1, var1, FanoFactor1, mean_corr1);
+
+function [rate1, var1, FanoFactor1, mean_corr1] = analyzeNeuralData(re1_s')
+    % Number of bins to aggregate
+    binsToAggregate = 10;
+
+    % Aggregate bins
+    % Reshape re1_s to make sure it's divisible by binsToAggregate along the 2nd dimension
+    [numNeurons, numBins] = size(re1_s);
+    numBins = floor(numBins / binsToAggregate) * binsToAggregate; % Adjust to make it divisible
+    re1_s = re1_s(:, 1:numBins); % Trim excess bins if necessary
+
+    % Sum every binsToAggregate bins into one bin, converting the matrix
+    aggregatedData = sum(reshape(re1_s, numNeurons, binsToAggregate, []), 2);
+    aggregatedData = squeeze(aggregatedData); % Remove singleton dimensions
+
+    % Compute firing rates (spikes per second)
+    rateData = aggregatedData; % Each column is now 1 second of data
+    rate1 = mean(rateData(:)); % Overall mean firing rate (spikes/s)
+
+    % Compute variance
+    var1 = var(rateData(:));
+
+    % Compute Fano Factor
+    FanoFactor1 = var1 / rate1;
+
+    % Compute correlation coefficients
+    COV = cov(rateData');
+    Var = diag(COV);
+    R = COV ./ sqrt(Var * Var');
+
+    % Visualize the calculated correlation matrix
+    figure;
+    imagesc(R);
+    colorbar;
+    title('Calculated Correlation Matrix from Covariance');
+    xlabel('Neurons');
+    ylabel('Neurons');
+
+    upper_R = R(triu(true(size(R)), 1));
+    mean_corr1 = nanmean(rtoZ(upper_R));
+end
+
+function Z = rtoZ(r)
+    % RTOZ translates fisher r correlations into Z scores
+    % aka the "Fisher r-to-Z' transformation"
+    % Jittering to avoid division by zero or log of zero
+    if any(r <= -1) || any(r >= 1)
+        error('r values must be bounded by -1 and 1');
+    end
+    Z = 0.5 * log((1 + r + 1e-10) ./ (1 - r + 1e-10));
+end
