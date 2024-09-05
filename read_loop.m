@@ -1,5 +1,6 @@
 % Load the data from a MAT file
-clear; clc; close all;
+% clear; clc; 
+close all;
 addpath('src')
 
 load('./data/ADdataDraco_04032024');  % Adjust the filename as needed
@@ -11,13 +12,13 @@ fprintf('Fields in the structure:\n');
 % Define configuration parameters
 obj_configs = struct();
 obj_configs.n_sampling = 100;  % Example: number of samplings
-obj_configs.Tw = 50;           % Example: time window size for spike counts
+obj_configs.Tw = 100;           % Example: time window size for spike counts
 obj_configs.Tburn = 100;       % Example: burn-in period to exclude from analysis
-obj_configs.Ne1 = 25;          % Example: number of excitatory neurons considered
+obj_configs.Ne1 = 50;          % Example: number of excitatory neurons considered
 obj_configs.dim_method = 'PA'; % Dimensionality reduction method
 
 % Loop through the first 10 entries in the dataset
-for i = 1:min(20, length(d))
+for i = 1:min(50, length(d))
     fprintf('\nProcessing Entry %d - Day: %s\n', i, num2str(d(i).dayNum));
 
     % Access v4counts field
@@ -44,6 +45,11 @@ for i = 1:min(20, length(d))
         continue;  % Skip the current iteration and move to the next entry
     end
 
+    if d(i).dayNum == 52
+        fprintf('Skipping day 35 as per condition.\n');
+        continue;  % Skip the current iteration and move to the next entry
+    end
+
 
    
     fprintf('v4counts data size: %s\n', mat2str(size(v4counts_current)));
@@ -57,14 +63,14 @@ for i = 1:min(20, length(d))
     Ic1 = sample_e_neurons_count(re, 50, 1);
     %disp(Ic1)
     n_neuron = 50;
-    n_sampling = 20;
+    n_sampling = 50;
     check_stability = 1;
 
     % Compute the statistics
     [rate0, var0, FanoFactor0, mean_corr0, unstable_flag, sampling_inds, re_filtered, low_rate_flag] = compute_stats_count(re, Ic1, n_sampling, n_neuron, check_stability);
 
     % Compute population statistics
-    [fa_percentshared, fa_normevals, fa_dshared] = compute_pop_stats_count(sampling_inds, re, n_neuron, 200, 'PA');
+    [fa_percentshared, fa_normevals, fa_dshared] = compute_pop_stats(sampling_inds, re, n_neuron, 200, 'PA');
      
     default_weights=ones(1,6);
      % Compile results into a table with consistent naming conventions
@@ -82,11 +88,11 @@ for i = 1:min(20, length(d))
     fa_normeval_var = 0.01;
     default_weights = ones(1,6);
 
-    true_statistics = table(n_neuron, rate_mean, rate_var, fano_mean, fano_var, mean_corr_mean, mean_corr_var, fa_percent_mean, fa_percent_var, fa_dim_mean, fa_dim_var, fa_normeval_mean, fa_normeval_var, default_weights, ...
+    true_statistics = table(n_neuron, rate_mean, 1/rate_mean, fano_mean, 1/fano_mean, mean_corr_mean, 1/mean_corr_mean, fa_percent_mean, fa_percent_var, fa_dim_mean, fa_dim_var, fa_normeval_mean, fa_normeval_var, default_weights, ...
                             'VariableNames', {'n_neuron', 'rate_mean', 'rate_var', 'fano_mean', 'fano_var', 'mean_corr_mean', 'mean_corr_var', 'fa_percent_mean', 'fa_percent_var', 'fa_dim_mean', 'fa_dim_var', 'fa_normeval_mean', 'fa_normeval_var', 'default_weights'});
 
     % Optionally save the statistics table to a file
-    output_file_name = sprintf('./data/stats_day%d.mat', d(i).dayNum);
+    output_file_name = sprintf('./data_marlene/monkey_%d.mat', d(i).dayNum);
     save(output_file_name, 'true_statistics');
 
     disp(true_statistics);  % Display the results for this day
